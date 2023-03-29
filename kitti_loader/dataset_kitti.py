@@ -27,24 +27,26 @@ class KittiDataset(Dataset):
             self.total_usable_images += drive.num_labelled_images
 
     def __len__(self):
-        return self.total_usable_images
+        return self.drives[0].num_labelled_images
 
     def __getitem__(self, idx):
 
         idx_drive_id = 0
         accum_drive_id = 0
 
-        for i in range(len(self.drives)):
-            drive: Kitti_Drive = self.drives[i]
-            idx += 250
-            accum_drive_id += drive.num_raw_images
-            if accum_drive_id > idx:
-                actual_drive_id = drive.num_raw_images - accum_drive_id + 250
-                return self.drives[idx_drive_id].get_raw_image_by_id(actual_drive_id), self.drives[idx_drive_id].get_semantic_rgb_image_by_id(actual_drive_id)
+        return self.drives[0].get_semantic_rgb_image_by_id(idx+250)
 
-            idx_drive_id += 1
+        # for i in range(len(self.drives)):
+        #     drive: Kitti_Drive = self.drives[i]
+        #     idx += 250
+        #     accum_drive_id += drive.num_raw_images
+        #     if accum_drive_id > idx:
+        #         actual_drive_id = drive.num_raw_images - accum_drive_id + 250
+        #         return self.drives[idx_drive_id].get_raw_image_by_id(actual_drive_id), self.drives[idx_drive_id].get_semantic_rgb_image_by_id(actual_drive_id)
+        #
+        #     idx_drive_id += 1
 
-        raise IndexError("Does not exist, or our implementation is just wrong")
+        # raise IndexError("Does not exist, or our implementation is just wrong")
 
     def get_list_drives(self):
         raw_data_dir = self.kitti_dir + 'data_2d_raw/'
