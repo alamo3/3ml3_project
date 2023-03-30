@@ -22,8 +22,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 2
 NUM_EPOCHS = 5
 NUM_WORKERS = 5
-IMAGE_WIDTH = 1280
-IMAGE_HEIGHT = 720
+IMAGE_WIDTH = 704
+IMAGE_HEIGHT = 188
 PIN_MEMORY = True
 LOAD_MODEL = False
 
