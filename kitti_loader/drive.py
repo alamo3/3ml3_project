@@ -39,7 +39,7 @@ class Kitti_Drive:
         lines = frames_file.readlines()
 
         for i in range(len(lines)):
-            line = lines[0]
+            line = lines[i]
             if line.__contains__(self.drive_id):
                 labelled_id = line[58:68]
                 self.labelled_ids.append(labelled_id)
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     print(drive.extend_image_id(10))
     print(len(drive.extend_image_id(10)))
 
-    test_img_id = 0
+    test_img_id = 3322
     drive.get_raw_image_by_id(image_id=test_img_id, show_img=True)
     drive.get_semantic_image_by_id(image_id=test_img_id, show_img=True)
     drive.get_semantic_rgb_image_by_id(image_id=test_img_id, show_img=True)

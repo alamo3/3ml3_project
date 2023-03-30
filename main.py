@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 LEARNING_RATE = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 2
-NUM_EPOCHS = 10
+NUM_EPOCHS = 5
 NUM_WORKERS = 5
 IMAGE_WIDTH = 1280
 IMAGE_HEIGHT = 720
@@ -122,9 +122,10 @@ def test_checkpoint():
 
     out_classes = torch.argmax(out_classes_prob, dim=1)
 
-    plt.imshow(out_classes.permute(1, 2, 0))
+    fig, axs = plt.subplots(2)
+    axs[0].imshow(out_classes.permute(1, 2, 0))
+    axs[1].imshow(img)
     plt.show()
-    print('break')
 
 if __name__ == "__main__":
 
