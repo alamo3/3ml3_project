@@ -7,12 +7,16 @@ class Kitti_Drive:
 
     def __init__(self, dataset_path, drive_id, left_and_right=False):
         self.drive_id = drive_id
+        self.dataset_path = dataset_path
         self.drive_raw_data_path = dataset_path + 'data_2d_raw/' + drive_id
         self.drive_labels_path = dataset_path + 'data_2d_semantics/train/' + drive_id
         self.use_left_and_right = left_and_right
 
         self.num_raw_images = self.count_num_raw_images()
-        self.num_labelled_images = self.count_num_labelled_images()
+        self.num_labelled_images = 0
+        self.labelled_ids = []
+
+        self.count_num_labelled_images()
 
     def count_num_raw_images(self):
         search_path = self.drive_raw_data_path + '/image_00/data_rect/'
@@ -29,13 +33,18 @@ class Kitti_Drive:
         return num_images
 
     def count_num_labelled_images(self):
-        search_path = self.drive_labels_path + '/image_00/semantic/'
+        frames_file_path = self.dataset_path+'data_2d_semantics/train/2013_05_28_drive_train_frames.txt'
+        frames_file = open(frames_file_path, 'r')
 
-        root, dirs, files = next(os.walk(search_path))
+        lines = frames_file.readlines()
 
-        num_images = len(files)
+        for i in range(len(lines)):
+            line = lines[0]
+            if line.__contains__(self.drive_id):
+                labelled_id = line[58:68]
+                self.labelled_ids.append(labelled_id)
+                self.num_labelled_images += 1
 
-        return num_images
 
     def extend_image_id(self, id):
         str_id = str(id)
@@ -46,14 +55,12 @@ class Kitti_Drive:
 
     def get_raw_image_by_id(self, image_id, right_image=False, show_img=False):
         image_dir = 'image_01' if right_image else 'image_00'
-        image_path = self.drive_raw_data_path + '/' + image_dir + '/data_rect/' + self.extend_image_id(
-            image_id) + '.png'
+        image_path = self.drive_raw_data_path + '/' + image_dir + '/data_rect/' + self.labelled_ids[image_id] + '.png'
 
-        img = read_image(image_path)
+        img = cv2.imread(image_path)
 
         if show_img:
-            img_temp = cv2.imread(image_path)
-            cv2.imshow('test', img_temp)
+            cv2.imshow('test', img)
             cv2.waitKey(0)
 
         return img
@@ -69,25 +76,23 @@ class Kitti_Drive:
 
     def get_labelled_image_by_id(self, image_id, label_type, show_img=False):
         image_dir = 'image_00'
-        image_path = self.drive_labels_path + '/' + image_dir + '/' + label_type + '/' + self.extend_image_id(
-            image_id) + '.png'
+        image_path = self.drive_labels_path + '/' + image_dir + '/' + label_type + '/' + self.labelled_ids[image_id] + '.png'
 
-        img = read_image(image_path)
+        img = cv2.imread(image_path, cv2.IMREAD_ANYDEPTH)
 
         if show_img:
-            img_temp = cv2.imread(image_path)
-            cv2.imshow('test', img_temp)
+            cv2.imshow('test', img)
             cv2.waitKey(0)
 
         return img
 
 
 if __name__ == "__main__":
-    drive = Kitti_Drive('/home/ecocar4/Desktop/kitti/kitti_360/KITTI-360/', '2013_05_28_drive_0000_sync')
+    drive = Kitti_Drive('G:/kitti/KITTI-360/', '2013_05_28_drive_0000_sync')
     print(drive.extend_image_id(10))
     print(len(drive.extend_image_id(10)))
 
-    test_img_id = 251
+    test_img_id = 0
     drive.get_raw_image_by_id(image_id=test_img_id, show_img=True)
     drive.get_semantic_image_by_id(image_id=test_img_id, show_img=True)
     drive.get_semantic_rgb_image_by_id(image_id=test_img_id, show_img=True)

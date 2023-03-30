@@ -1,13 +1,20 @@
 import os
+
+import torch
 from PIL import Image
+from albumentations.pytorch import ToTensorV2
 from torch.utils.data import Dataset
 import numpy as np
 from kitti_loader.drive import Kitti_Drive
+import matplotlib.pyplot as plt
+import albumentations as A
+import torchvision.transforms as T
+
 
 
 class KittiDataset(Dataset):
 
-    def __init__(self, kitti_dir, transform=None, target_transform=None, use_left_and_right=False):
+    def __init__(self, kitti_dir, transform=None, use_left_and_right=False):
         self.kitti_dir = kitti_dir
         self.use_left_and_right = use_left_and_right
 
@@ -16,7 +23,6 @@ class KittiDataset(Dataset):
         self.id_offset = 250
 
         self.transform = transform
-        self.target_transform = target_transform
 
         self.get_list_drives()
 
@@ -31,10 +37,16 @@ class KittiDataset(Dataset):
 
     def __getitem__(self, idx):
 
-        idx_drive_id = 0
-        accum_drive_id = 0
 
-        return self.drives[0].get_semantic_rgb_image_by_id(idx+250)
+        img = self.drives[0].get_raw_image_by_id(idx)
+        labelled_img = self.drives[0].get_semantic_image_by_id(idx)
+
+        if self.transform is not None:
+            augmented_images = self.transform(image=img, image1=labelled_img)
+            img = augmented_images["image"]
+            labelled_img = augmented_images["image1"]
+
+        return img, labelled_img
 
         # for i in range(len(self.drives)):
         #     drive: Kitti_Drive = self.drives[i]
@@ -63,5 +75,20 @@ class KittiDataset(Dataset):
 
 
 if __name__ == "__main__":
-    data_loader = KittiDataset('/home/ecocar4/Desktop/kitti/kitti_360/KITTI-360/')
+    train_transform = A.Compose(
+        [
+            A.Resize(width=704, height=188),
+            A.Rotate(limit=35, p=1.0),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.1),
+            ToTensorV2()
+        ],
+        additional_targets={'image1' : 'image'}
+    )
+    data_loader = KittiDataset('G:/kitti/KITTI-360/', transform=train_transform)
     img, label = data_loader[0]
+
+    f,axarr = plt.subplots(2)
+    axarr[0].imshow(img.permute(1,2,0))
+    axarr[1].imshow(label.permute(1, 2, 0))
+    plt.show()
