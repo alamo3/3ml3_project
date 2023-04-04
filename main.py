@@ -52,7 +52,6 @@ def main():
 
     train_transform = A.Compose(
         [
-            A.Resize(width=704, height=188),
             A.Rotate(limit=35, p=1.0),
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.1),
@@ -89,11 +88,11 @@ def main():
             "optimizer": optimizer.state_dict()
         }
 
-        save_checkpoint(checkpoint, filename='monkey.pth.tar')
+        save_checkpoint(checkpoint, filename='monkey_2.pth.tar')
 
 
 def test_checkpoint():
-    file_name = 'checkpoint_model.pth.tar'
+    file_name = 'monkey.pth.tar'
     checkpoint = torch.load(file_name)
 
     model = UNET(in_channels=3, out_channels=45)
@@ -104,7 +103,7 @@ def test_checkpoint():
     model.eval()
 
     data_loader = KittiDataset('G:/kitti/KITTI-360/')
-    img, label = data_loader[0]
+
 
     val_transform = A.Compose(
         [
@@ -113,6 +112,8 @@ def test_checkpoint():
         ]
     )
 
+
+    img, label = data_loader[6332]
     img_tensor = val_transform(image=img)['image'].float().unsqueeze(0)
 
     predictions = model(img_tensor)
@@ -126,6 +127,7 @@ def test_checkpoint():
     axs[0].imshow(out_classes.permute(1, 2, 0))
     axs[1].imshow(img)
     plt.show()
+
 
 if __name__ == "__main__":
 
