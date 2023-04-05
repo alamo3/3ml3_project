@@ -85,7 +85,7 @@ if __name__ == "__main__":
         ],
         additional_targets={'image1' : 'image'}
     )
-    data_loader = KittiDataset('G:/kitti/KITTI-360/', transform=train_transform)
+    data_loader = KittiDataset('C:/EcoCAR Projects/kitti/kitti-360/', transform=train_transform)
     img, label = data_loader[0]
 
     f,axarr = plt.subplots(2)
