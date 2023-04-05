@@ -91,8 +91,13 @@ def accuracy_calculator(model, loader, num_classes):
     accuracy_score = m.balanced_accuracy_score(y_true, y_pred)
     class_report = m.classification_report(y_true=y_true, y_pred=y_pred)
     print(class_report)
+    f1_score_micro = m.f1_score(y_true=y_true, y_pred=y_pred, average='micro')
+    f1_score_macro = m.f1_score(y_true=y_true, y_pred=y_pred, average='micro')
+    print('Balanced accuracy score', accuracy_score)
+    print('Dice score Micro average', f1_score_micro)
+    print('Dice score Macro Average', f1_score_macro)
 
-    print(accuracy_score)
+    return class_report, accuracy_score, f1_score_micro, f1_score_macro
 
 
 def get_transforms():
