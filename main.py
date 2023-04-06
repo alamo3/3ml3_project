@@ -14,6 +14,8 @@ from utils.util import *
 from params import *
 
 import matplotlib.pyplot as plt
+import time
+
 
 model_save_number = 0
 
@@ -21,7 +23,7 @@ model_save_number = 0
 def train_fn(loader, model, optimizer, loss_fn, scaler):
     loop = tqdm(loader)
     model.train()
-    loss_final = 1000
+    loss_final = 0
     for batch_idx, (data, targets) in enumerate(loop):
         data = data.float().to(device=DEVICE)
         targets = targets.squeeze(1).long().to(device=DEVICE)
@@ -30,7 +32,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler):
         with torch.cuda.amp.autocast():
             predictions = model(data)
             loss = loss_fn(predictions, targets)
-            loss_final = loss
+            loss_final += loss.item()
 
         # backward
         optimizer.zero_grad()
@@ -40,7 +42,7 @@ def train_fn(loader, model, optimizer, loss_fn, scaler):
 
         loop.set_postfix(loss=loss.item())
 
-    return loss_final
+    return loss_final / len(loader)
 
 
 def get_transforms():
@@ -71,9 +73,23 @@ def main():
 
     train_transform, val_transform = get_transforms()
 
-    model = UNET(in_channels=3, out_channels=45).to(device=DEVICE)
+    checkpoint_load = None
+
+    if LOAD_MODEL:
+        checkpoint_load = torch.load(MODEL_FILE_NAME, map_location=DEVICE)
+
+    model = UNET(in_channels=3, out_channels=45)
+
+    if LOAD_MODEL:
+        model.load_state_dict(checkpoint_load['state_dict'])
+
+    model.to(device=DEVICE)
+
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    if LOAD_MODEL:
+        optimizer.load_state_dict(checkpoint_load['optimizer'])
 
     scaler = torch.cuda.amp.GradScaler()
 
@@ -82,21 +98,39 @@ def main():
                                                    val_transform=val_transform, num_workers=NUM_WORKERS,
                                                    pin_memory=True)
 
+    loss_epoch_train = []
+    loss_epoch_val = []
     loss_min = 3000000
     for epoch in range(NUM_EPOCHS):
         loss_after_epoch = train_fn(train_loader, model, optimizer, loss_fn, scaler)
+
+        validation_loss = validation_metrics(model=model, loader=val_loader, num_classes=45, loss_fn=loss_fn)
 
         checkpoint = {
             "state_dict": model.state_dict(),
             "optimizer": optimizer.state_dict()
         }
 
-        save_checkpoint(checkpoint, filename='monkey_2.pth.tar')
+        save_checkpoint(checkpoint, filename='monkey_3.pth.tar')
+
+        if validation_loss < loss_min:
+            save_checkpoint(checkpoint, filename='Lowest_Val_Loss_Epoch_' + str(epoch) + '.pth.tar')
+            loss_min = validation_loss
+
+        loss_epoch_val.append(validation_loss)
+        loss_epoch_train.append(loss_after_epoch)
+
+    fig, axs = plt.subplots(2)
+    axs[0].plot(loss_epoch_train)
+    axs[1].plot(loss_epoch_val)
+
+    plt.savefig('train_val_loss.png')
+    plt.show()
 
 
 def test_checkpoint():
     torch.cuda.empty_cache()
-    file_name = 'monkey.pth.tar'
+    file_name = 'monkey_2.pth.tar'
     checkpoint = torch.load(file_name, map_location=DEVICE)
 
     model = UNET(in_channels=3, out_channels=45)
@@ -104,6 +138,8 @@ def test_checkpoint():
     model.to(device=DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     optimizer.load_state_dict(checkpoint['optimizer'])
+
+    loss_fn = nn.CrossEntropyLoss()
 
     with torch.no_grad():
         model.eval()
@@ -117,14 +153,20 @@ def test_checkpoint():
                                                        val_transform=val_transform, num_workers=NUM_WORKERS,
                                                        pin_memory=True)
 
-        accuracy_calculator(model=model, loader=val_loader, num_classes=45, use_important_labels_only=True)
+        #validation_metrics(model=model, loader=val_loader, num_classes=45, loss_fn=loss_fn, calculate_metrics=True)
 
+        time_start = time.time()
         img, label = data_loader[6332]
         img_tensor = val_transform(image=img)['image'].float().unsqueeze(0).to(device=DEVICE)
 
         predictions = model(img_tensor)
+        time_end = time.time()
 
         out_classes = get_output_classes(predictions).cpu()
+
+
+
+        print('Inference time image load to output: ', time_end-time_start)
 
         fig, axs = plt.subplots(2)
         axs[0].imshow(out_classes.permute(1, 2, 0))
@@ -133,4 +175,4 @@ def test_checkpoint():
 
 
 if __name__ == "__main__":
-    test_checkpoint()
+    main()

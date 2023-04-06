@@ -54,7 +54,7 @@ def get_output_classes(pred):
     return out_classes
 
 
-def accuracy_calculator(model, loader, num_classes, use_important_labels_only):
+def validation_metrics(model, loader, num_classes, loss_fn, calculate_metrics=False, use_important_labels_only=True):
     loop = tqdm(loader)
     model.eval()
 
@@ -67,10 +67,13 @@ def accuracy_calculator(model, loader, num_classes, use_important_labels_only):
 
     imp_labels = important_classes
 
+    loss = 0
+
     for batch_idx, (data, targets) in enumerate(loop):
         data = data.float().to(device=DEVICE)
-        targets = targets.squeeze(1)
+        targets = targets.squeeze(1).long().to(device=DEVICE)
         predictions = model(data)
+        loss += loss_fn(predictions, targets).item()
 
         pred_classes = get_output_classes(predictions)
 
@@ -85,19 +88,23 @@ def accuracy_calculator(model, loader, num_classes, use_important_labels_only):
 
         num_images_tested += BATCH_SIZE
 
-    target_names = [get_class_name_for_id(i) for i in imp_labels]
+    if calculate_metrics:
+        target_names = [get_class_name_for_id(i) for i in imp_labels]
 
-    class_report = m.classification_report(y_true=y_true, y_pred=y_pred, output_dict=True, labels=imp_labels,
-                                           target_names=target_names, zero_division=1)
+        class_report = m.classification_report(y_true=y_true, y_pred=y_pred, output_dict=True, labels=imp_labels,
+                                               target_names=target_names, zero_division=1)
 
-    print(json.dumps(class_report, indent=4))
+        print(json.dumps(class_report, indent=4))
 
-    accuracy_score = class_report['weighted avg']['precision']
-    f1_score_micro = class_report['micro avg']['f1-score']
-    f1_score_macro = class_report['macro avg']['f1-score']
+        accuracy_score = class_report['weighted avg']['precision']
+        f1_score_micro = class_report['micro avg']['f1-score']
+        f1_score_macro = class_report['macro avg']['f1-score']
 
-    print('Balanced accuracy score', accuracy_score)
-    print('Dice score Micro average', f1_score_micro)
-    print('Dice score Macro Average', f1_score_macro)
+        print('Balanced accuracy score', accuracy_score)
+        print('Dice score Micro average', f1_score_micro)
+        print('Dice score Macro Average', f1_score_macro)
+        print('Loss function', loss / len(loader))
 
-    return class_report, accuracy_score, f1_score_micro, f1_score_macro
+        return class_report, accuracy_score, f1_score_micro, f1_score_macro, loss / len(loader)
+    else:
+        return loss / len(loader)
