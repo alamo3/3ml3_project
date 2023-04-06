@@ -130,7 +130,7 @@ def main():
 
 def test_checkpoint():
     torch.cuda.empty_cache()
-    file_name = 'monkey_2.pth.tar'
+    file_name = 'monkey_3.pth.tar'
     checkpoint = torch.load(file_name, map_location=DEVICE)
 
     model = UNET(in_channels=3, out_channels=45)
@@ -153,7 +153,7 @@ def test_checkpoint():
                                                        val_transform=val_transform, num_workers=NUM_WORKERS,
                                                        pin_memory=True)
 
-        #validation_metrics(model=model, loader=val_loader, num_classes=45, loss_fn=loss_fn, calculate_metrics=True)
+        #validation_metrics(model=model, loader=val_loader, num_classes=45, loss_fn=loss_fn, calculate_metrics=False)
 
         time_start = time.time()
         img, label = data_loader[6332]
@@ -175,4 +175,4 @@ def test_checkpoint():
 
 
 if __name__ == "__main__":
-    main()
+    test_checkpoint()

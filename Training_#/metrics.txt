@@ -1,0 +1,70 @@
+
+{
+    "car": {
+        "precision": 0.9604845327681191,
+        "recall": 0.9561671796363417,
+        "f1-score": 0.9583209936761011,
+        "support": 23268432
+    },
+    "truck": {
+        "precision": 0.9123524390497804,
+        "recall": 0.48764018436789897,
+        "f1-score": 0.6355743653857868,
+        "support": 449319
+    },
+    "bus": {
+        "precision": 1.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 43025
+    },
+    "motorcycle": {
+        "precision": 0.4754929814592672,
+        "recall": 0.3568760316219268,
+        "f1-score": 0.4077327378132684,
+        "support": 126621
+    },
+    "bicycle": {
+        "precision": 0.46236559139784944,
+        "recall": 0.0024072104349773275,
+        "f1-score": 0.004789485408777011,
+        "support": 35726
+    },
+    "person": {
+        "precision": 0.5441882804995197,
+        "recall": 0.005751210647607638,
+        "f1-score": 0.011382130156115007,
+        "support": 197002
+    },
+    "road": {
+        "precision": 0.9831446281700321,
+        "recall": 0.9602993878175275,
+        "f1-score": 0.971587734764793,
+        "support": 29792261
+    },
+    "micro avg": {
+        "precision": 0.9719062914800988,
+        "recall": 0.9482702917285093,
+        "f1-score": 0.9599428204822358,
+        "support": 53912386
+    },
+    "macro avg": {
+        "precision": 0.7625754933349382,
+        "recall": 0.3955916006466114,
+        "f1-score": 0.42705534960069164,
+        "support": 53912386
+    },
+    "weighted avg": {
+        "precision": 0.9696466547794103,
+        "recall": 0.9482702917285093,
+        "f1-score": 0.9568123887314584,
+        "support": 53912386
+    }
+}
+Balanced accuracy score 0.9696466547794103
+Dice score Micro average 0.9599428204822358
+Dice score Macro Average 0.42705534960069164
+Loss function 0.2992380849094074
+D:\EcoCAR Projects\ml_training_pipeline\venv\lib\site-packages\torchvision\transforms\functional.py:1603: UserWarning: The default value of the antialias parameter of all the resizing transforms (Resize(), RandomResizedCrop(), etc.) will change from None to True in v0.17, in order to be consistent across the PIL and Tensor backends. To suppress this warning, directly pass antialias=True (recommended, future default), antialias=None (current default, which means False for Tensors and True for PIL), or antialias=False (only works on Tensors - PIL will still use antialiasing). This also applies if you are using the inference transforms from the models weights: update the call to weights.transforms(antialias=True).
+  warnings.warn(
+Inference time image load to output:  2.4668562412261963
