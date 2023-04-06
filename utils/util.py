@@ -1,9 +1,17 @@
 import torch
 import torchvision
+from tqdm import tqdm
+
 from kitti_loader import dataset_kitti
 from torch.utils.data import DataLoader, SubsetRandomSampler
 import numpy as np
 import torch.nn as nn
+import sklearn.metrics as m
+import json
+
+from params import *
+
+from utils.labels import *
 
 
 def save_checkpoint(state, filename="checkpoint_model.pth.tar"):
@@ -16,7 +24,6 @@ def load_checkpoint(checkpoint, model):
 
 
 def get_training_loader(kitti_dataset_dir, batch_size, train_transform, val_transform, num_workers, pin_memory=True):
-
     dataset = dataset_kitti.KittiDataset(kitti_dataset_dir, train_transform)
     dataset_val = dataset_kitti.KittiDataset(kitti_dataset_dir, val_transform)
 
@@ -45,3 +52,52 @@ def get_output_classes(pred):
     out_classes = torch.argmax(out_classes_prob, dim=1)
 
     return out_classes
+
+
+def accuracy_calculator(model, loader, num_classes, use_important_labels_only):
+    loop = tqdm(loader)
+    model.eval()
+
+    confusion_matrix = np.zeros((num_classes, num_classes), dtype=int)
+
+    num_images_tested = 0
+
+    y_true = []
+    y_pred = []
+
+    imp_labels = important_classes
+
+    for batch_idx, (data, targets) in enumerate(loop):
+        data = data.float().to(device=DEVICE)
+        targets = targets.squeeze(1)
+        predictions = model(data)
+
+        pred_classes = get_output_classes(predictions)
+
+        targets_flat = torch.flatten(targets).tolist()
+        pred_flat = torch.flatten(pred_classes).tolist()
+
+        y_true.extend(targets_flat)
+        y_pred.extend(pred_flat)
+
+        for i in range(len(targets_flat)):
+            confusion_matrix[targets_flat[i], pred_flat[i]] += 1
+
+        num_images_tested += BATCH_SIZE
+
+    target_names = [get_class_name_for_id(i) for i in imp_labels]
+
+    class_report = m.classification_report(y_true=y_true, y_pred=y_pred, output_dict=True, labels=imp_labels,
+                                           target_names=target_names, zero_division=1)
+
+    print(json.dumps(class_report, indent=4))
+
+    accuracy_score = class_report['weighted avg']['precision']
+    f1_score_micro = class_report['micro avg']['f1-score']
+    f1_score_macro = class_report['macro avg']['f1-score']
+
+    print('Balanced accuracy score', accuracy_score)
+    print('Dice score Micro average', f1_score_micro)
+    print('Dice score Macro Average', f1_score_macro)
+
+    return class_report, accuracy_score, f1_score_micro, f1_score_macro
