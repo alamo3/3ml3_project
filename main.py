@@ -48,11 +48,11 @@ def train_fn(loader, model, optimizer, loss_fn, scaler):
 def get_transforms():
     train_transform = A.Compose(
         [
-            A.Resize(width=IMAGE_WIDTH, height=IMAGE_HEIGHT),
-            A.Rotate(limit=35, p=1.0),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.1),
-            ToTensorV2()
+            A.Resize(width=IMAGE_WIDTH, height=IMAGE_HEIGHT), # Resize to 704x188
+            A.Rotate(limit=35, p=1.0), # Rotate by 35 degrees, Always happens
+            A.HorizontalFlip(p=0.5), # Flip horizontally, 50% chance
+            A.VerticalFlip(p=0.1), # Flip vertically, 10% chance
+            ToTensorV2() # Convert to tensor
         ],
         additional_targets={'image1': 'image'}
     )
@@ -71,6 +71,8 @@ def get_transforms():
 def main():
     torch.cuda.empty_cache()
 
+    create_directory(output_folder)
+
     train_transform, val_transform = get_transforms()
 
     checkpoint_load = None
@@ -82,6 +84,9 @@ def main():
 
     if LOAD_MODEL:
         model.load_state_dict(checkpoint_load['state_dict'])
+
+    if parallel_training:
+        model = nn.DataParallel(model)
 
     model.to(device=DEVICE)
 
@@ -111,21 +116,18 @@ def main():
             "optimizer": optimizer.state_dict()
         }
 
-        save_checkpoint(checkpoint, filename='monkey_3.pth.tar')
+        save_checkpoint(checkpoint, filename=output_folder+'chkpoint_'+str(epoch)+'.pth.tar')
 
         if validation_loss < loss_min:
-            save_checkpoint(checkpoint, filename='Lowest_Val_Loss_Epoch_' + str(epoch) + '.pth.tar')
+            save_checkpoint(checkpoint, filename=output_folder+'Lowest_Val_Loss_Epoch_' + str(epoch) + '.pth.tar')
             loss_min = validation_loss
 
         loss_epoch_val.append(validation_loss)
         loss_epoch_train.append(loss_after_epoch)
 
-    fig, axs = plt.subplots(2)
-    axs[0].plot(loss_epoch_train)
-    axs[1].plot(loss_epoch_val)
+        print(f"Epoch: {epoch} | Train Loss: {loss_after_epoch} | Validation Loss: {validation_loss}")
+        create_and_save_epoch_plots(loss_epoch_val, loss_epoch_train)
 
-    plt.savefig('train_val_loss.png')
-    plt.show()
 
 
 def test_checkpoint():
@@ -175,4 +177,5 @@ def test_checkpoint():
 
 
 if __name__ == "__main__":
-    test_checkpoint()
+    main()
+    #test_checkpoint()

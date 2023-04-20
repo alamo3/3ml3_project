@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torchvision
 from tqdm import tqdm
@@ -8,6 +10,7 @@ import numpy as np
 import torch.nn as nn
 import sklearn.metrics as m
 import json
+import matplotlib.pyplot as plt
 
 from params import *
 
@@ -108,3 +111,18 @@ def validation_metrics(model, loader, num_classes, loss_fn, calculate_metrics=Fa
         return class_report, accuracy_score, f1_score_micro, f1_score_macro, loss / len(loader)
     else:
         return loss / len(loader)
+
+
+def create_directory(dir_name):
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+
+def create_and_save_epoch_plots(loss_val, loss_train):
+    fig, axs = plt.subplots(2)
+    axs[0].plot(loss_train)
+    axs[0].set(xlabel="Epoch", ylabel="Training Loss")
+
+
+    axs[1].plot(loss_val)
+    axs[1].set(xlabel="Epoch", ylabel="Validation Loss")
+    plt.savefig(output_folder+'train_val_loss.png')
