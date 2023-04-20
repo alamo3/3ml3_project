@@ -119,9 +119,9 @@ def create_directory(dir_name):
 
 def create_and_save_epoch_plots(loss_val, loss_train):
     fig, axs = plt.subplots(2)
+    fig.set_size_inches(10.5, 12.5)
     axs[0].plot(loss_train)
     axs[0].set(xlabel="Epoch", ylabel="Training Loss")
-
 
     axs[1].plot(loss_val)
     axs[1].set(xlabel="Epoch", ylabel="Validation Loss")
