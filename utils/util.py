@@ -2,6 +2,7 @@ import os
 
 import torch
 import torchvision
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 from tqdm import tqdm
 
 from kitti_loader import dataset_kitti
@@ -61,8 +62,6 @@ def validation_metrics(model, loader, num_classes, loss_fn, calculate_metrics=Fa
     loop = tqdm(loader)
     model.eval()
 
-    confusion_matrix = np.zeros((num_classes, num_classes), dtype=int)
-
     num_images_tested = 0
 
     y_true = []
@@ -86,9 +85,6 @@ def validation_metrics(model, loader, num_classes, loss_fn, calculate_metrics=Fa
         y_true.extend(targets_flat)
         y_pred.extend(pred_flat)
 
-        for i in range(len(targets_flat)):
-            confusion_matrix[targets_flat[i], pred_flat[i]] += 1
-
         num_images_tested += BATCH_SIZE
 
     if calculate_metrics:
@@ -108,10 +104,25 @@ def validation_metrics(model, loader, num_classes, loss_fn, calculate_metrics=Fa
         print('Dice score Macro Average', f1_score_macro)
         print('Loss function', loss / len(loader))
 
+        cm = confusion_matrix(y_true, y_pred, labels=imp_labels)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=imp_labels)
+        disp.plot()
+        plt.savefig(output_folder + 'cm.png')
+
         return class_report, accuracy_score, f1_score_micro, f1_score_macro, loss / len(loader)
     else:
         return loss / len(loader)
 
+
+def convert_class_output_to_rgb_image(pred):
+
+    output_rgb = np.zeros((pred.shape[1], pred.shape[2], 3), dtype=np.uint8)
+
+    for i in range(pred.shape[1]):
+        for j in range(pred.shape[2]):
+            output_rgb[i][j] = labels[pred[0][i][j]].color
+
+    return output_rgb
 
 def create_directory(dir_name):
     if not os.path.exists(dir_name):

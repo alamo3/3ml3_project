@@ -16,6 +16,7 @@ from params import *
 import matplotlib.pyplot as plt
 import time
 
+import cv2
 
 model_save_number = 0
 
@@ -24,6 +25,8 @@ def train_fn(loader, model, optimizer, loss_fn, scaler):
     loop = tqdm(loader)
     model.train()
     loss_final = 0
+
+    # Train loop
     for batch_idx, (data, targets) in enumerate(loop):
         data = data.float().to(device=DEVICE)
         targets = targets.squeeze(1).long().to(device=DEVICE)
@@ -48,11 +51,11 @@ def train_fn(loader, model, optimizer, loss_fn, scaler):
 def get_transforms():
     train_transform = A.Compose(
         [
-            A.Resize(width=IMAGE_WIDTH, height=IMAGE_HEIGHT), # Resize to 704x188
-            A.Rotate(limit=35, p=1.0), # Rotate by 35 degrees, Always happens
-            A.HorizontalFlip(p=0.5), # Flip horizontally, 50% chance
-            A.VerticalFlip(p=0.1), # Flip vertically, 10% chance
-            ToTensorV2() # Convert to tensor
+            A.Resize(width=IMAGE_WIDTH, height=IMAGE_HEIGHT),  # Resize to 704x188
+            A.Rotate(limit=35, p=1.0),  # Rotate by 35 degrees, Always happens
+            A.HorizontalFlip(p=0.5),  # Flip horizontally, 50% chance
+            A.VerticalFlip(p=0.1),  # Flip vertically, 10% chance
+            ToTensorV2()  # Convert to tensor
         ],
         additional_targets={'image1': 'image'}
     )
@@ -82,11 +85,11 @@ def main():
 
     model = UNET(in_channels=3, out_channels=45)
 
-    if LOAD_MODEL:
-        model.load_state_dict(checkpoint_load['state_dict'])
-
     if parallel_training:
         model = nn.DataParallel(model)
+
+    if LOAD_MODEL:
+        model.load_state_dict(checkpoint_load['state_dict'])
 
     model.to(device=DEVICE)
 
@@ -116,10 +119,10 @@ def main():
             "optimizer": optimizer.state_dict()
         }
 
-        save_checkpoint(checkpoint, filename=output_folder+'chkpoint_'+str(epoch)+'.pth.tar')
+        save_checkpoint(checkpoint, filename=output_folder + 'chkpoint_' + str(epoch) + '.pth.tar')
 
         if validation_loss < loss_min:
-            save_checkpoint(checkpoint, filename=output_folder+'Lowest_Val_Loss_Epoch_' + str(epoch) + '.pth.tar')
+            save_checkpoint(checkpoint, filename=output_folder + 'Lowest_Val_Loss_Epoch_' + str(epoch) + '.pth.tar')
             loss_min = validation_loss
 
         loss_epoch_val.append(validation_loss)
@@ -129,13 +132,16 @@ def main():
         create_and_save_epoch_plots(loss_epoch_val, loss_epoch_train)
 
 
-
 def test_checkpoint():
     torch.cuda.empty_cache()
-    file_name = 'monkey_3.pth.tar'
+    file_name = output_folder + 'chkpoint_148.pth.tar'
     checkpoint = torch.load(file_name, map_location=DEVICE)
 
     model = UNET(in_channels=3, out_channels=45)
+
+    if parallel_training:
+        model = nn.DataParallel(model)
+
     model.load_state_dict(checkpoint['state_dict'])
     model.to(device=DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -150,32 +156,38 @@ def test_checkpoint():
 
         data_loader = KittiDataset(KITTI_DATASET_PATH)
 
-        train_loader, val_loader = get_training_loader(kitti_dataset_dir=KITTI_DATASET_PATH,
-                                                       batch_size=BATCH_SIZE, train_transform=train_transform,
-                                                       val_transform=val_transform, num_workers=NUM_WORKERS,
-                                                       pin_memory=True)
+        if CALCULATE_METRICS:
+            train_loader, val_loader = get_training_loader(kitti_dataset_dir=KITTI_DATASET_PATH,
+                                                           batch_size=BATCH_SIZE, train_transform=train_transform,
+                                                           val_transform=val_transform, num_workers=NUM_WORKERS,
+                                                           pin_memory=True)
 
-        #validation_metrics(model=model, loader=val_loader, num_classes=45, loss_fn=loss_fn, calculate_metrics=False)
+            validation_metrics(model=model, loader=val_loader, num_classes=45, loss_fn=loss_fn, calculate_metrics=False)
 
-        time_start = time.time()
-        img, label = data_loader[6332]
-        img_tensor = val_transform(image=img)['image'].float().unsqueeze(0).to(device=DEVICE)
+        progress_bar = tqdm(range(len(data_loader)))
 
-        predictions = model(img_tensor)
-        time_end = time.time()
+        for i in progress_bar:
+            time_start = time.time()
+            img, label = data_loader[i]
+            img_tensor = val_transform(image=img)['image'].float().unsqueeze(0).to(device=DEVICE)
+            predictions = model(img_tensor)
+            time_end = time.time()
 
-        out_classes = get_output_classes(predictions).cpu()
+            out_classes = get_output_classes(predictions).cpu().numpy()
 
+            out_class_rgb = convert_class_output_to_rgb_image(out_classes)
+            out_class_rgb = cv2.cvtColor(out_class_rgb, cv2.COLOR_RGB2BGR)
+            im_raw_rgb, labelled_raw_rgb = data_loader.get_img_no_transform(i, size=(IMAGE_WIDTH, IMAGE_HEIGHT))
 
+            disp_image = np.vstack((im_raw_rgb, out_class_rgb, labelled_raw_rgb))
 
-        print('Inference time image load to output: ', time_end-time_start)
+            cv2.imwrite(output_folder + 'output_' + str(i) + '.png', disp_image)
 
-        fig, axs = plt.subplots(2)
-        axs[0].imshow(out_classes.permute(1, 2, 0))
-        axs[1].imshow(img)
-        plt.show()
+            progress_bar.set_description(
+                'Inference time image load to output: {inference_time}'.format(inference_time=time_end - time_start),
+                refresh=True)
 
 
 if __name__ == "__main__":
-    main()
-    #test_checkpoint()
+    # main()
+    test_checkpoint()

@@ -9,7 +9,7 @@ from kitti_loader.drive import Kitti_Drive
 import matplotlib.pyplot as plt
 import albumentations as A
 import torchvision.transforms as T
-
+import cv2
 
 
 class KittiDataset(Dataset):
@@ -34,6 +34,16 @@ class KittiDataset(Dataset):
 
     def __len__(self):
         return self.drives[0].num_labelled_images
+
+    def get_img_no_transform(self, idx,size=None):
+        img = self.drives[0].get_raw_image_by_id(idx)
+        labelled_img = self.drives[0].get_semantic_rgb_image_by_id(idx)
+
+        if size is not None:
+            img = cv2.resize(img, size)
+            labelled_img = cv2.resize(labelled_img, size)
+
+        return img, labelled_img
 
     def __getitem__(self, idx):
 

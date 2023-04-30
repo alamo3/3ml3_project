@@ -66,19 +66,19 @@ class Kitti_Drive:
         return img
 
     def get_semantic_image_by_id(self, image_id, show_img=False):
-        return self.get_labelled_image_by_id(image_id=image_id, label_type='semantic', show_img=show_img)
+        return self.get_labelled_image_by_id(image_id=image_id, label_type='semantic', show_img=show_img, not_rgb=True)
 
     def get_semantic_rgb_image_by_id(self, image_id, show_img=False):
         return self.get_labelled_image_by_id(image_id=image_id, label_type='semantic_rgb', show_img=show_img)
 
     def get_instance_image_by_id(self, image_id, show_img=False):
-        return self.get_labelled_image_by_id(image_id=image_id, label_type='instance', show_img=show_img)
+        return self.get_labelled_image_by_id(image_id=image_id, label_type='instance', show_img=show_img, not_rgb=True)
 
-    def get_labelled_image_by_id(self, image_id, label_type, show_img=False):
+    def get_labelled_image_by_id(self, image_id, label_type, show_img=False, not_rgb=False):
         image_dir = 'image_00'
         image_path = self.drive_labels_path + '/' + image_dir + '/' + label_type + '/' + self.labelled_ids[image_id] + '.png'
 
-        img = cv2.imread(image_path, cv2.IMREAD_ANYDEPTH)
+        img = cv2.imread(image_path, cv2.IMREAD_ANYDEPTH) if not_rgb else cv2.imread(image_path)
 
         if show_img:
             cv2.imshow('test', img)
