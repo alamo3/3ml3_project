@@ -14,6 +14,9 @@ The main entry point for the project is the `main.py` file. The file contains a 
 that can be used to train and test the model. The `main` function can be used to train the model and 
 the 'test_checkpoint' function can be used to test the model.
 
+The file 'params.py' contains a number of parameters that are used to setup the training and inferencing
+pipeline.
+
 ## Sample output from trained model
 A sample output from the trained model is shown below. The model was trained on a subset of the KITTI dataset
 ![Sample Output](/sample_image.png)
