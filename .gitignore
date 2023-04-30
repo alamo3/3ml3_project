@@ -186,3 +186,5 @@ fabric.properties
 *.pth.tar
 *.pt
 *.pth
+
+!train_output/chkpoint_148.pth.tar
